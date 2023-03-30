@@ -1,0 +1,10 @@
+matplotlib==3.7.1
+numpy == 1.20.3
+pandas==1.5.3
+scipy==1.10.1
+sentence_transformers==2.2.2
+setfit==0.6.0
+torch==2.0.0
+tqdm
+ipywidgets
+jupyterlab
