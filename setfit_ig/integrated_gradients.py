@@ -36,7 +36,10 @@ def integrated_gradients_on_text(
 
     target_embed = embeddings
 
-    final_scores, grad_per_integration_step = calculate_integrated_gradient_scores(
+    (
+        final_scores,
+        grad_per_integration_step,
+    ) = calculate_integrated_gradient_scores(
         grd, integration_steps, init_embed, target_embed
     )
 
@@ -66,10 +69,10 @@ def integrated_gradients_on_text(
 
 
 def calculate_integrated_gradient_scores(
-    grd,
+    grd: SetFitGrad,
     integration_steps: int,
-    init_embed,
-    target_embed,
+    init_embed: torch.Tensor,
+    target_embed: torch.Tensor,
     max_alpha: float = 1.0,
 ):
     """
@@ -85,7 +88,7 @@ def calculate_integrated_gradient_scores(
 
     integration_steps, weights = roots_legendre(integration_steps)
 
-    # originally the steps are (-1,1), need to map to (0,1)
+    # originally the steps are in (-1,1), need to map to (0,1)
     integration_steps = numpy.interp(integration_steps, (-1, 1), (0, max_alpha))
     integration_steps = torch.tensor(integration_steps, device=device)
 
@@ -117,7 +120,8 @@ def calculate_integrated_gradient_scores(
     integrals_per_embedding = grad_per_integration_step.sum(
         axis=0
     )  # number of tokens x embedding dim
-    final_scores = integrals_per_embedding.mean(axis=1)  #  number of tokens
+
+    final_scores = integrals_per_embedding.mean(axis=1)
     return final_scores, grad_per_integration_step
 
 

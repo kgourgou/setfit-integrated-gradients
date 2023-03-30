@@ -8,7 +8,9 @@ class BinaryLogisticRegressionModel(nn.Module):
     Implementation of Binary Logistic Regression.
     """
 
-    def __init__(self, input_dimension, lr=0.01, number_of_epochs=100, device="cpu"):
+    def __init__(
+        self, input_dimension, lr=0.01, number_of_epochs=100, device="cpu"
+    ):
         super(BinaryLogisticRegressionModel, self).__init__()
 
         self.input_dimension = input_dimension
@@ -25,7 +27,6 @@ class BinaryLogisticRegressionModel(nn.Module):
         return self.linear(x)
 
     def fit(self, X, y):
-
         if isinstance(y, list):
             y = torch.tensor(y, dtype=torch.float, device=self.device)
 

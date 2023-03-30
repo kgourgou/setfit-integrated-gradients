@@ -1,18 +1,16 @@
 import copy
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 
 import torch
-from torch.nn import Sequential
-
 from sentence_transformers.SentenceTransformer import SentenceTransformer
-
 from setfit import SetFitModel
 from torch.autograd import grad
+from torch.nn import Sequential
 
 
 class SetFitModelWithTorchHead(SetFitModel):
     """
-    This follows SetFit model, except that the embeddings are
+    This follows SetFitModel, except that the embeddings are
     returned as tensors. This is required to backpropagate through the model head.
     """
 
@@ -103,7 +101,9 @@ class SetFitGrad:
         )
         self.rest_of_processing = Sequential(rest_of_processing)
 
-    def model_pass(self, sentence_string: str = None, sentence_token_embedding=None):
+    def model_pass(
+        self, sentence_string: str = None, sentence_token_embedding=None
+    ):
         """
         A SetFit model pass, but broken down into steps.
 
@@ -113,7 +113,9 @@ class SetFitGrad:
 
         if sentence_token_embedding is None:
             with torch.no_grad():
-                sentence = self.tokenizer(sentence_string).to(device=self.device)
+                sentence = self.tokenizer(sentence_string).to(
+                    device=self.device
+                )
                 sentence_token_embedding = self.embedder(
                     input_ids=sentence["input_ids"],
                     token_type_ids=sentence["token_type_ids"],

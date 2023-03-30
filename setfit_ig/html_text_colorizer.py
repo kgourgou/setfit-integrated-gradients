@@ -1,7 +1,6 @@
-from typing import Callable, List, Tuple
+from typing import Tuple
 
 import numpy
-import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import cm
 from matplotlib.colors import Normalize, rgb2hex
@@ -10,7 +9,7 @@ from .integrated_gradients import integrated_gradients_on_text
 from .setfit_extensions import SetFitGrad
 
 
-def hlstr(string, color="white"):
+def hlstr(string: str, color="white") -> str:
     """
     Return HTML markup highlighting text with the desired color.
     """
@@ -54,8 +53,8 @@ class WordImportanceColorsSetFit:
         print("HTML(colored_text)")
 
     def show_colors_for_sentence(
-        self, text, integration_steps=100, cmap="bwr"
-    ) -> Tuple[str, pd.DataFrame, float]:
+        self, text: str, integration_steps: int = 100, cmap: str = "bwr"
+    ) -> Tuple[str, pd.DataFrame, float, numpy.array]:
         """
         Pass the output of this function to IPython.display.HTML
 
