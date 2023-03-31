@@ -22,7 +22,7 @@ def integrated_gradients_on_text(
 
     """
 
-    device = grd.model_head.device
+    device = grd.model_body.device
 
     prob, _, embeddings, _, input_ids, _ = grd.model_pass(
         sentence_string=sentence_string
@@ -78,11 +78,11 @@ def calculate_integrated_gradient_scores(
     """
     grd: SetFitGrad
     integration_steps: int
-    init_embed: torch.Tensor, 1 x number of tokens x embedding size
+    init_embed: torch, 1 x number of tokens x embedding size
     target_embed: torch.Tensor, 1 x number of tokens x embedding size
     max_alpha: float, up to where to estimate the integral of the gradient curve.
     """
-    device = grd.model_head.device
+    device = grd.model_body.device
 
     grads = []
 

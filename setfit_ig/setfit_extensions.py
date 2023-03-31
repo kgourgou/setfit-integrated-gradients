@@ -25,18 +25,6 @@ class SetFitModelWithTorchHead(SetFitModel):
         super(SetFitModel, self).__init__()
         self.model_body = model_body
         self.model_head = model_head
-        self.multi_target_strategy = None
-        self.model_original_state = copy.deepcopy(self.model_body.state_dict())
-
-        sed = model_body.get_sentence_embedding_dimension()
-
-        assert (
-            sed == model_head.input_dimension
-        ), f"sentence embedding dim: {sed} != head input dim: {model_head.input_dimension}"
-
-    def fit(self, x_train, y_train):
-        embeddings = self.model_body.encode(x_train, convert_to_tensor=True)
-        self.model_head.fit(embeddings, y_train)
 
     def predict(self, x_test):
         embeddings = self.model_body.encode(x_test, convert_to_tensor=True)
@@ -50,14 +38,6 @@ class SetFitModelWithTorchHead(SetFitModel):
         output = self.model_body(inputs)
         embeddings = output["sentence_embedding"]
         return self.model_head.predict_proba(embeddings), output
-
-    def eval(self):
-        self.model_body.eval()
-        self.model_head.eval()
-
-    def zero_grad(self):
-        self.model_body.zero_grad()
-        self.model_head.zero_grad()
 
 
 class SetFitGrad:
@@ -79,7 +59,7 @@ class SetFitGrad:
         if device:
             self.device = device
         else:
-            self.device = self.model_head.device
+            self.device = self.model_body.device
 
         if tokenizer:
             self.tokenizer = tokenizer
@@ -101,9 +81,7 @@ class SetFitGrad:
         )
         self.rest_of_processing = Sequential(rest_of_processing)
 
-    def model_pass(
-        self, sentence_string: str = None, sentence_token_embedding=None
-    ):
+    def model_pass(self, sentence_string: str = None, sentence_token_embedding=None):
         """
         A SetFit model pass, but broken down into steps.
 
@@ -113,9 +91,7 @@ class SetFitGrad:
 
         if sentence_token_embedding is None:
             with torch.no_grad():
-                sentence = self.tokenizer(sentence_string).to(
-                    device=self.device
-                )
+                sentence = self.tokenizer(sentence_string).to(device=self.device)
                 sentence_token_embedding = self.embedder(
                     input_ids=sentence["input_ids"],
                     token_type_ids=sentence["token_type_ids"],

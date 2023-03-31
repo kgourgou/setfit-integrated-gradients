@@ -1,51 +1,33 @@
 import torch
-import torch.nn as nn
-from tqdm import tqdm
 
 
-class BinaryLogisticRegressionModel(nn.Module):
+class SklearnToPyTorchLogisticRegression(torch.nn.Module):
     """
-    Implementation of Binary Logistic Regression.
+    Pass a trained sklearn LogisticRegression model to this class
+    to create an equivalent PyTorch model.
     """
 
-    def __init__(
-        self, input_dimension, lr=0.01, number_of_epochs=100, device="cpu"
-    ):
-        super(BinaryLogisticRegressionModel, self).__init__()
+    def __init__(self, sklearn_model):
+        super(SklearnToPyTorchLogisticRegression, self).__init__()
 
-        self.input_dimension = input_dimension
-        self.linear = nn.Linear(input_dimension, 1, device=device)
-        self.lr = lr
-        self.number_of_epochs = number_of_epochs
-        self.criterion = torch.nn.BCEWithLogitsLoss()
-        self.optimizer = torch.optim.SGD(
-            self.parameters(), lr=self.lr, weight_decay=1.0
-        )
-        self.device = device
+        # Extract the parameters from the sklearn model
+        coef = sklearn_model.coef_.flatten()
+        intercept = sklearn_model.intercept_.flatten()
+
+        # Initialize the PyTorch parameters
+        self.linear = torch.nn.Linear(coef.shape[0], 1)
+        with torch.no_grad():
+            self.linear.weight.copy_(torch.from_numpy(coef))
+            self.linear.bias.copy_(torch.from_numpy(intercept))
 
     def forward(self, x):
-        return self.linear(x)
+        out = self.linear(x)
+        return torch.sigmoid(out)
 
-    def fit(self, X, y):
-        if isinstance(y, list):
-            y = torch.tensor(y, dtype=torch.float, device=self.device)
+    def predict(self, x):
+        y_pred = self.forward(x).round().squeeze().int()
+        return y_pred
 
-        for epoch in tqdm(range(self.number_of_epochs)):
-            self.optimizer.zero_grad()
-            y_prediction = self(X).flatten()
-            loss = self.criterion(y_prediction, y)
-            loss.backward()
-            self.optimizer.step()
-
-            if epoch % 10000 == 0:
-                print(f"logreg loss = {loss.item()}")
-
-    def predict(self, X, thr=0.5):
-        # predict classes
-        return torch.sigmoid(self(X)) > thr
-
-    def predict_proba(self, X) -> float:
-        """
-        Returns only the P(y=1|X).
-        """
-        return torch.sigmoid(self(X)).flatten()
+    def predict_proba(self, x):
+        # Compute the predicted probabilities of the positive class for input x
+        return self.forward(x).squeeze()
