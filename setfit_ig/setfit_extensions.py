@@ -85,6 +85,8 @@ class SetFitGrad:
         """
         A SetFit model pass, but broken down into steps.
 
+        Either pass the sentence_string or the sentence_token_embedding. 
+
         Returns:
         - positive_class_probability, grads, sentence_token_embedding
         """
