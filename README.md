@@ -4,6 +4,9 @@ Hacking SetFit so that it works with [integrated gradients](https://www.tensorfl
 
 Integrated gradients is a way to explain the decisions of the model by scoring what parts of the input influenced a particular decision. 
 
+*Note*: This mini-library only supports binary classification with a scikit-learn logistic-regression head. 
+
+
 ## Installation
 
 ```
