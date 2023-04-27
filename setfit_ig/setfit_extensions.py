@@ -14,7 +14,9 @@ class SetFitModelWithTorchHead(SetFitModel):
     returned as tensors. This is required to backpropagate through the model head.
     """
 
-    def __init__(self, model_body: SentenceTransformer = None, model_head=None):
+    def __init__(
+        self, model_body: SentenceTransformer = None, model_head: torch.nn.Module = None
+    ):
         """
         model_body: SentenceTransformer(), see huggingface library.
         model_head: nn.Module(), torch implementation of a model head.
@@ -85,10 +87,16 @@ class SetFitGrad:
         """
         A SetFit model pass, but broken down into steps.
 
-        Either pass the sentence_string or the sentence_token_embedding. 
+        Either pass the sentence_string or the sentence_token_embedding.
 
         Returns:
-        - positive_class_probability, grads, sentence_token_embedding
+            "positive_class_probability",
+            "token_embedding_gradients",
+            "sentence_token_embedding",
+            "attention_mask",
+            "input_ids",
+            "sentence_embedding",
+
         """
 
         if sentence_token_embedding is None:
@@ -105,7 +113,7 @@ class SetFitGrad:
             input_ids = sentence["input_ids"]
         else:
             input_ids = None
-            attention_mask_dim = sentence_token_embedding.shape[0:2]
+            attention_mask_dim = sentence_token_embedding.shape[1:2]
             attention_mask = torch.ones(attention_mask_dim, device=self.device)
 
         encoder_output = self.encoder(
@@ -126,6 +134,7 @@ class SetFitGrad:
         token_embedding_gradients = grad(
             outputs=positive_class_probability,
             inputs=sentence_token_embedding,
+            grad_outputs=torch.ones_like(positive_class_probability),
             retain_graph=True,
         )[0].squeeze()
 
