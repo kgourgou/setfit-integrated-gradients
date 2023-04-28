@@ -28,6 +28,7 @@ def integrated_gradients_on_text(
         sentence_string=sentence_string
     )
 
+    # TODO encode an empty sentence instead of passing zeros. 
     init_embed = torch.zeros_like(target_embed, device=device)
 
     # don't zero out [CLS] and [SEP] tokens
@@ -80,8 +81,6 @@ def calculate_integrated_gradient_scores(
     max_alpha: float, up to where to estimate the integral of the gradient curve.
     """
     device = grd.model_body.device
-
-    grads = []
 
     integration_steps, weights = roots_legendre(num_of_integration_steps)
 
