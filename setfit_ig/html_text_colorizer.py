@@ -23,6 +23,8 @@ def colorize(attrs, cmap="PiYG"):
     the colormap so that colors are consistent with the attributions.
     """
 
+    # TODO pass an option to have this absolute or relative colouring 
+    
     # map colors separately for positive and negative elements
     attrs = attrs.copy()
     pos = attrs[attrs >= 0]

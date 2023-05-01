@@ -24,17 +24,16 @@ def integrated_gradients_on_text(
 
     device = grd.model_body.device
 
-    prob, _, embeddings, _, input_ids, _ = grd.model_pass(
+    prob, _, target_embed, _, input_ids, _ = grd.model_pass(
         sentence_string=sentence_string
     )
 
-    init_embed = torch.zeros_like(embeddings, device=device)
+    # TODO encode an empty sentence instead of passing zeros. 
+    init_embed = torch.zeros_like(target_embed, device=device)
 
     # don't zero out [CLS] and [SEP] tokens
-    init_embed[0, 0, :] = embeddings[0, 0, :]
-    init_embed[0, -1, :] = embeddings[0, -1, :]
-
-    target_embed = embeddings
+    init_embed[0, 0, :] = target_embed[0, 0, :]
+    init_embed[0, -1, :] = target_embed[0, -1, :]
 
     (
         final_scores,
@@ -56,37 +55,34 @@ def integrated_gradients_on_text(
     word_to_ids = construct_word_to_id_mapping(sentence_string, grd)
 
     word_to_score = []
-
     for word, token_ids in word_to_ids:
         key_scores = scores.loc[token_ids, "attribution_score"].sum()
         word_to_score.append((word, key_scores))
 
-    df_w2s = (
+    df_word_to_score = (
         pd.DataFrame(word_to_score).rename(columns={0: "words", 1: "score"}).dropna()
     )
 
-    return df_w2s, prob, grad_per_integration_step
+    return df_word_to_score, prob, grad_per_integration_step
 
 
 def calculate_integrated_gradient_scores(
     grd: SetFitGrad,
-    integration_steps: int,
+    num_of_integration_steps: int,
     init_embed: torch.Tensor,
     target_embed: torch.Tensor,
     max_alpha: float = 1.0,
 ):
     """
     grd: SetFitGrad
-    integration_steps: int
+    num_of_integration_steps: int
     init_embed: torch, 1 x number of tokens x embedding size
     target_embed: torch.Tensor, 1 x number of tokens x embedding size
     max_alpha: float, up to where to estimate the integral of the gradient curve.
     """
     device = grd.model_body.device
 
-    grads = []
-
-    integration_steps, weights = roots_legendre(integration_steps)
+    integration_steps, weights = roots_legendre(num_of_integration_steps)
 
     # originally the steps are in (-1,1), need to map to (0,1)
     integration_steps = numpy.interp(integration_steps, (-1, 1), (0, max_alpha))
@@ -95,34 +91,30 @@ def calculate_integrated_gradient_scores(
     # scale the weights to the new interval
     weights = torch.tensor(weights, device="cpu") * max_alpha / 2.0
 
-    # function to integrate
-    def model_grad_at_perturbation(t):
-        new_embed = init_embed + t * (target_embed - init_embed)
-        _, gradient, _, _, _, _ = grd.model_pass(sentence_token_embedding=new_embed)
-        return gradient
+    new_embed_v = torch.einsum(
+        "bp,bqr->bpqr", integration_steps[None, :], target_embed - init_embed
+    ).squeeze()
+    new_embed_v = new_embed_v + init_embed
+    new_embed_v = new_embed_v.type(torch.float32)
 
-    # TODO could probably do this in one pass instead of using a for-loop.
-    for t, w in tqdm(list(zip(integration_steps, weights))):
-        gradient = model_grad_at_perturbation(t).cpu().detach()
-        diff = (
-            target_embed.squeeze().cpu().detach() - init_embed.squeeze().cpu().detach()
-        )
+    gradient_at_every_perturbation = grd.model_pass(
+        sentence_token_embedding=new_embed_v
+    )[1]
 
-        # reduce dimensions from number of tokens x embedding size
-        # to number of tokens x 1
-        grads.append(gradient * diff * w)
+    diff = (target_embed - init_embed).cpu().detach()
+    
+    weighted_grads_per_integration_step = (
+        gradient_at_every_perturbation
+        * diff[:, None, None, :]
+        * weights[None, :, None, None]
+    )
 
-    # integral calculation
-    grad_per_integration_step = torch.stack(
-        grads
-    )  # number of integration steps x number of tokens x embedding dim
-
-    integrals_per_embedding = grad_per_integration_step.sum(
+    integrals_per_embedding = weighted_grads_per_integration_step.squeeze().sum(
         axis=0
     )  # number of tokens x embedding dim
 
     final_scores = integrals_per_embedding.mean(axis=1)
-    return final_scores, grad_per_integration_step
+    return final_scores, weighted_grads_per_integration_step
 
 
 def construct_word_to_id_mapping(sentence_string, grd) -> Tuple[str, List[int]]:
