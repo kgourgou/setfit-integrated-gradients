@@ -28,7 +28,7 @@ def integrated_gradients_on_text(
         sentence_string=sentence_string
     )
 
-    # TODO encode an empty sentence instead of passing zeros. 
+    # TODO encode an empty sentence instead of passing zeros.
     init_embed = torch.zeros_like(target_embed, device=device)
 
     # don't zero out [CLS] and [SEP] tokens
@@ -102,7 +102,7 @@ def calculate_integrated_gradient_scores(
     )[1]
 
     diff = (target_embed - init_embed).cpu().detach()
-    
+
     weighted_grads_per_integration_step = (
         gradient_at_every_perturbation
         * diff[:, None, None, :]
@@ -118,9 +118,10 @@ def calculate_integrated_gradient_scores(
 
 
 def construct_word_to_id_mapping(sentence_string, grd) -> Tuple[str, List[int]]:
-    word_to_ids = [
-        (word, grd.model_body.tokenizer.encode(word, add_special_tokens=False))
-        for word in sentence_string.split(" ")
-    ]
+    tok_sentence = grd.model_body.tokenizer.tokenize(sentence_string)
+    encoding = grd.model_body.tokenizer.encode(
+        sentence_string, add_special_tokens=False
+    )
+    word_to_ids = [(x, y) for x, y in zip(tok_sentence, encoding)]
 
     return word_to_ids

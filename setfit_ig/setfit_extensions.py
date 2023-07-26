@@ -104,7 +104,7 @@ class SetFitGrad:
                 sentence = self.tokenizer(sentence_string).to(device=self.device)
                 sentence_token_embedding = self.embedder(
                     input_ids=sentence["input_ids"],
-                    token_type_ids=sentence["token_type_ids"],
+                    # token_type_ids=sentence["token_type_ids"],
                 )
 
             attention_mask = sentence["attention_mask"]

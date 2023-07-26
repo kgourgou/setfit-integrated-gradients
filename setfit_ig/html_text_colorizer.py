@@ -23,8 +23,8 @@ def colorize(attrs, cmap="PiYG"):
     the colormap so that colors are consistent with the attributions.
     """
 
-    # TODO pass an option to have this absolute or relative colouring 
-    
+    # TODO pass an option to have this absolute or relative colouring
+
     # map colors separately for positive and negative elements
     attrs = attrs.copy()
     pos = attrs[attrs >= 0]
@@ -70,10 +70,12 @@ class WordImportanceColorsSetFit:
             text, self.scorer, integration_steps=integration_steps
         )
 
+        words = df_w2s.words.apply(lambda x: x.replace("\u0120", ""))
+
         colors = colorize(df_w2s.score, cmap=cmap)
 
         return (
-            " ".join(list(map(hlstr, df_w2s.words, colors))),
+            " ".join(list(map(hlstr, words, colors))),
             df_w2s,
             float(prob.detach()),
             grad_per_integration_step,
